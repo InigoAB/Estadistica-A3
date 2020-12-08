@@ -1,0 +1,185 @@
+---
+title: "Estadistica-A3"
+author: "Iñigo"
+date: "7/12/2020"
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_libraries, message=FALSE, warning=FALSE}
+# Empiezo cargando los paquetes que usaré:
+#library(knitr)
+library(gridExtra)
+library(tidyverse)
+#library(data.table)
+```
+
+# 1. Datos y Estadística descriptiva
+
+## 1.1 Lectura de datos
+En primer lugar, leed el fichero de datos y verificad que los tipos de datos se interpretan correctamente. Si fuera necesario, haced las oportunas conversiones de tipos.
+```{r}
+house <- read.csv("house.csv", stringsAsFactors=TRUE, sep=";")
+head(house)
+str(house)
+```
+
+Veo que la variable Sold se ha cargado como de tipo numérico entero y no como factor. La cambio.
+
+```{r}
+house$Sold <- ifelse(test=house$Sold == 1, yes="YES", no="NO")
+house$Sold <- as.factor(house$Sold)
+```
+
+## 1.2. Descriptiva y visualización
+
+A continuación, comenzaremos el estudio descriptivo, para caracterizar el tipo de variables, detectar posible datos faltantes, outliers, variables con varianza nula o casi nula, etc.
+
+```{r}
+summary(house)
+```
+
+Voy a visualizar los histogramas de las variables.
+```{r message=FALSE, warning=FALSE}
+grid.arrange(
+  qplot(price, data=house),
+  qplot(resid_area, data=house),
+  qplot(air_qual, data=house),
+  qplot(room_num, data=house),
+  qplot(age, data=house),
+  qplot(dist1, data=house),
+  qplot(dist2, data=house),
+  qplot(dist3, data=house),
+  qplot(dist4, data=house),
+  qplot(teachers, data=house),
+  qplot(poor_prop, data=house),
+  qplot(airport, data=house),
+  qplot(n_hos_beds, data=house),
+  qplot(n_hot_rooms, data=house),
+  qplot(waterbody, data=house),
+  qplot(rainfall, data=house),
+  qplot(bus_ter, data=house),
+  qplot(parks, data=house),
+  qplot(Sold, data=house)
+)
+```
+
+Y diagramas de dispersión respecto al precio.
+```{r message=FALSE, warning=FALSE}
+grid.arrange(
+  qplot(resid_area, price, data=house),
+  qplot(air_qual, price, data=house),
+  qplot(room_num, price, data=house),
+  qplot(age, price, data=house),
+  qplot(dist1, price, data=house),
+  qplot(dist2, price, data=house),
+  qplot(dist3, price, data=house),
+  qplot(dist4, price, data=house),
+  qplot(teachers, price, data=house),
+  qplot(poor_prop, price, data=house),
+  qplot(n_hos_beds, price, data=house),
+  qplot(n_hot_rooms, price, data=house),
+  qplot(rainfall, price, data=house),
+  qplot(parks, price, data=house)
+)
+```
+
+Se intuye una relación lineal entre price y room-num y también entre price y poor_prop (proporción de población pobre en la ciudad). No da la sensación de que haya ningún valor muy aislado.
+
+Voy a mirar con unos diagramas de cajas si hay valores extremos en el precio, separados por si están vendidos o no.
+```{r}
+ggplot(house, aes(x=Sold, y=price, color=Sold)) + 
+  ggtitle("Diagrama de cajas") + 
+  scale_color_brewer(palette="Dark2") +
+  geom_boxplot()
+```
+
+No se ve que haya ningún valor extremo muy apartado del resto, como para quitarlo.
+
+# 2. Modelo de regresión lineal
+
+## 2.1. Modelo de regresión lineal simple
+
+### 2.1.1. Calcular
+Estimar por mínimos cuadrados ordinarios dos modelos lineales que expliquen la variable price, uno en función de la variable teachers y otro en función de la variable poor_prop.
+```{r}
+lm_teachers <- lm(price ~ teachers, data=house)
+lm_poor_prop <- lm(price ~ poor_prop, data=house)
+```
+
+### 2.1.2. Describe las diferencias entre ambos modelos y compáralos.
+Miro el resultado del cálculo de regresión lineal para explicar los precios (price) de las casas con el número de profesores (teachers).
+```{r 2.1.2.1}
+summary(lm_teachers)
+```
+
+Ahora miro el resultado de calcular la regresión lineal para explicar el precio de las casas (price) con la proporción de población pobre en la ciudad (poor_prop).
+```{r 2.1.2.2}
+summary(lm_poor_prop)
+```
+
+En ambos modelos las variables son explicaticas pero el de los profesores tiene una pendiente positiva (a más profesores aumenta el precio) mientras que el de la proporción de pobreza tiene una pendiente negativa (a mayor proporción de pobreza menor precio).
+
+COMPARAR MEJOR LOS RESULTADOS.
+
+### 2.1.3. Para cada modelo, realiza un gráfico de dispersión XY e interpretar brevemente el gráfico resultante.
+
+```{r 2.1.3.1}
+ ggplot(data = house, aes(y = price, x = teachers)) + 
+  geom_point() + 
+  ggtitle("price ~ teachers") +
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+```{r 2.1.3.2}
+ ggplot(data = house, aes(y = price, x = poor_prop)) + 
+  geom_point() + 
+  ggtitle("price ~ poor_prop") +
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+COMERTAR LOS GRÁFICOS
+
+## 2.2. Modelo de regresión lineal múltiple (regresores cuantitativos)
+
+### 2.2.1. Calcular
+
+Estimar por mínimos cuadrados ordinarios un modelo lineal que explique la variable price en función de age, teachers, poor_prop.
+
+```{r 2.2.1.}
+lm_2.2.1 <- lm(price ~ age + teachers + poor_prop, data=house)
+```
+
+### 2.2.2. Indicar el efecto de cada variable regresora e interpretar el modelo.
+```{r 2.2.2.}
+summary(lm_2.2.1)
+```
+
+COMENTAR LOS RESULTADOS
+
+### 2.2.3. Evaluar la bondad de ajuste a través del coeficiente de determinación ajustado.
+
+```{r 2.2.3.}
+summary(lm_2.2.1)
+```
+
+COMENTAR
+
+### 2.2.4. Ampliar el modelo anterior con las variables room_num, n_hos_beds y n_hot_rooms.
+
+```{r}
+lm_2.2.4 <- lm(price ~ age + teachers + poor_prop + room_num + n_hos_beds + n_hot_rooms, data=house)
+summary(lm_2.2.4)
+```
+Comparar los dos modelos. ¿Es significativamente mejor el nuevo modelo?
+COMENTAR
+
+## 2.3. Modelo de regresión lineal múltiple (regresores cuantitativos y cualitativos)
+Queremos conocer en qué medida el modelo anterior (Modelo 2.2) se ve afectado por la inclusión de la variable airport.
