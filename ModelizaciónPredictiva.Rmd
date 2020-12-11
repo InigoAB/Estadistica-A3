@@ -34,7 +34,7 @@ str(house)
 Veo que la variable Sold se ha cargado como de tipo numérico entero y no como factor. La cambio.
 
 ```{r}
-house$Sold <- ifelse(test=house$Sold == 1, yes="YES", no="NO")
+house$Sold <- ifelse(test=house$Sold == 1, yes="Yes", no="Not")
 house$Sold <- as.factor(house$Sold)
 ```
 
@@ -98,7 +98,9 @@ Voy a mirar con unos diagramas de cajas si hay valores extremos en el precio, se
 ggplot(house, aes(x=Sold, y=price, color=Sold)) + 
   ggtitle("Diagrama de cajas") + 
   scale_color_brewer(palette="Dark2") +
-  geom_boxplot()
+  geom_boxplot() +
+  theme(legend.position = "null") +
+  geom_jitter(width = 0.1)
 ```
 
 No se ve que haya ningún valor extremo muy apartado del resto, como para quitarlo.
@@ -163,29 +165,29 @@ Gráficamente se ven claramente las distintas pendientes pero también se puede 
 Estimar por mínimos cuadrados ordinarios un modelo lineal que explique la variable price en función de age, teachers, poor_prop.
 
 ```{r 2.2.1.}
-lm_2.2 <- lm(price ~ age + teachers + poor_prop, data=house)
-lm_2.2
+lm_2.2.1 <- lm(price ~ age + teachers + poor_prop, data=house)
+lm_2.2.1
 ```
 
-El modelo de regresión obtenido es: $$\hat{y} =  `r round(lm_2.2$coefficients[1],2)` + `r round(lm_2.2$coefficients[2],2)`x_1 + `r round(lm_2.2$coefficients[3],2)`x_2 `r round(lm_2.2$coefficients[4],2)`x_3$$
+El modelo de regresión obtenido es: $$\hat{y} =  `r round(lm_2.2.1$coefficients[1],2)` + `r round(lm_2.2.1$coefficients[2],2)`x_1 + `r round(lm_2.2.1$coefficients[3],2)`x_2 `r round(lm_2.2.1$coefficients[4],2)`x_3$$
 
 ### 2.2.2. Indicar el efecto de cada variable regresora e interpretar el modelo.
 
-Intercept es la ordenada en el origen que nos indica el precio en caso de que el resto de variables sean 0. En este caso `r round(lm_2.2$coefficients[1],2)` millones es el precio esperado para una casa construida este mismo año, sin que llegue a haber ni un profesor por cada mil habitantes y sin que haya pobreza.
+Intercept es la ordenada en el origen que nos indica el precio en caso de que el resto de variables sean 0. En este caso `r round(lm_2.2.1$coefficients[1],2)` millones es el precio esperado para una casa construida este mismo año, sin que llegue a haber ni un profesor por cada mil habitantes y sin que haya pobreza.
 
-$x_1$ (age) nos indica que el incremento estimado del precio de las casas será de `r round(lm_2.2$coefficients[2],2)` por cada incremento de un año desde la fecha de construcción.
+$x_1$ (age) nos indica que el incremento estimado del precio de las casas será de `r round(lm_2.2.1$coefficients[2],2)` por cada incremento de un año desde la fecha de construcción.
 
-La variable $x_2$ (teachers) nos dice que el precio de las casas se estima que incrementará en `r round(lm_2.2$coefficients[3],2)` unidades por cada profesor que haya por cada mil habitantes.
+La variable $x_2$ (teachers) nos dice que el precio de las casas se estima que incrementará en `r round(lm_2.2.1$coefficients[3],2)` unidades por cada profesor que haya por cada mil habitantes.
 
-La variable $x_3$ (poor_prop) indica que por cada aumento unitario en la proporción de pobreza el precio de las casas disminuirá en `r round(lm_2.2$coefficients[4],2)` unidades.
+La variable $x_3$ (poor_prop) indica que por cada aumento unitario en la proporción de pobreza el precio de las casas disminuirá en `r round(lm_2.2.1$coefficients[4],2)` unidades.
 
 ### 2.2.3. Evaluar la bondad de ajuste a través del coeficiente de determinación ajustado.
 
 ```{r 2.2.3.}
-summary(lm_2.2)
+summary(lm_2.2.1)
 ```
 
-Vemos que el coeficiente de determinación ajustado es r`(summary(lm_2.2)$adj.r.squared)` por lo que el modelo explica el `r label_percent(accuracy = 0.01)(summary(lm_2.2)$adj.r.squared)` de la varianza de las variables. Ha mejorado bastante respecto a los modelos de regresión simple.
+Vemos que el coeficiente de determinación ajustado es r`(summary(lm_2.2.1)$adj.r.squared)` por lo que el modelo explica el `r label_percent(accuracy = 0.01)(summary(lm_2.2.1)$adj.r.squared)` de la varianza de las variables. Ha mejorado bastante respecto a los modelos de regresión simple.
 
 ### 2.2.4. Ampliar el modelo anterior con las variables room_num, n_hos_beds y n_hot_rooms.
 
@@ -196,13 +198,9 @@ lm_2.2.4 <- lm(price ~ age + teachers + poor_prop + room_num + n_hos_beds + n_ho
 summary(lm_2.2.4)
 ```
 
-Veo que este nuevo modelo tiene un coeficiente de determinación ajustado es `r (summary(lm_2.2.4)$adj.r.squared)` por lo que el modelo explica el `r label_percent(accuracy = 0.01)(summary(lm_2.2.4)$adj.r.squared)` de la varianza de las variables. Mientras que el anterior explicaba el `r label_percent(accuracy = 0.01)(summary(lm_2.2)$adj.r.squared)` de la varianza de las variables.
+Veo que este nuevo modelo tiene un coeficiente de determinación ajustado es `r (summary(lm_2.2.4)$adj.r.squared)` por lo que el modelo explica el `r label_percent(accuracy = 0.01)(summary(lm_2.2.4)$adj.r.squared)` de la varianza de las variables. Mientras que el anterior explicaba el `r label_percent(accuracy = 0.01)(summary(lm_2.2.1)$adj.r.squared)` de la varianza de las variables.
 
-El modelo ha mejorado un `r label_percent(accuracy = 0.01)((summary(lm_2.2.4)$adj.r.squared)-(summary(lm_2.2)$adj.r.squared))`.
-
-```{r}
-anova(lm_2.2, lm_2.2.4)
-```
+El modelo ha mejorado un `r label_percent(accuracy = 0.01)((summary(lm_2.2.4)$adj.r.squared)-(summary(lm_2.2.1)$adj.r.squared))`.
 
 ## 2.3. Modelo de regresión lineal múltiple (regresores cuantitativos y cualitativos)
 Queremos conocer en qué medida el modelo anterior (Modelo 2.2) se ve afectado por la inclusión de la variable airport.
@@ -210,7 +208,7 @@ Queremos conocer en qué medida el modelo anterior (Modelo 2.2) se ve afectado 
 ### 2.3.1. Aplicar un modelo de regresión lineal múltiple y explicar el resultado.
 
 ```{r}
-lm_2.3.1 <- lm(price ~ age + teachers + poor_prop + airport, data=house)
+lm_2.3.1 <- lm(price ~ age + teachers + poor_prop + room_num + n_hos_beds + n_hot_rooms + airport, data=house)
 lm_2.3.1
 ```
 
@@ -224,7 +222,13 @@ $x_2$ (teachers) indica un incremento estimado en el precio de la casa de `r rou
 
 $x_3$ (poor_prop) indica una disminución estimada en el precio de la casa de `r round(lm_2.3.1$coefficients[4],2)` millones por cada aumento unitario en la proporción de pobreza.
 
-$x_4$ (airportYES) indica que se estima que el precio de la casa disminuirá en `r round(lm_2.3.1$coefficients[5],2)` millones en caso de que la ciudad tenga aeropuerto.
+$x_4$ (room_num)
+
+$x_5$ (n_hos_beds)
+
+$x_6$ (n_hot_rooms)
+
+$x_7$ (airportYES) indica que se estima que el precio de la casa disminuirá en `r round(lm_2.3.1$coefficients[5],2)` millones en caso de que la ciudad tenga aeropuerto.
 
 
 ### 2.3.2. ¿Es significativamente mejor el nuevo modelo?
@@ -233,12 +237,12 @@ $x_4$ (airportYES) indica que se estima que el precio de la casa disminuirá en 
 summary(lm_2.3.1)
 ```
 
-Veo que este nuevo modelo tiene un coeficiente de determinación ajustado es `r (summary(lm_2.3.1)$adj.r.squared)` por lo que el modelo explica el `r label_percent(accuracy = 0.01)(summary(lm_2.3.1)$adj.r.squared)` de la varianza de las variables. Mientras que el anterior explicaba el `r label_percent(accuracy = 0.01)(summary(lm_2.2)$adj.r.squared)` de la varianza de las variables.
+Veo que este nuevo modelo tiene un coeficiente de determinación ajustado es `r (summary(lm_2.3.1)$adj.r.squared)` por lo que el modelo explica el `r label_percent(accuracy = 0.01)(summary(lm_2.3.1)$adj.r.squared)` de la varianza de las variables. Mientras que el anterior explicaba el `r label_percent(accuracy = 0.01)(summary(lm_2.2.4)$adj.r.squared)` de la varianza de las variables.
 
-El modelo ha mejorado un `r label_percent(accuracy = 0.01)((summary(lm_2.3.1)$adj.r.squared)-(summary(lm_2.2)$adj.r.squared))`. Por lo que casi no hay diferencia.
+El modelo ha mejorado un `r label_percent(accuracy = 0.01)((summary(lm_2.3.1)$adj.r.squared)-(summary(lm_2.2.4)$adj.r.squared))`. Por lo que casi no hay diferencia.
 
 ```{r}
-anova(lm_2.2, lm_2.3.1)
+anova(lm_2.2.4, lm_2.3.1)
 ```
 
 Haciendo un análisis de la varianza se puede ver que la inclusión de airport no mejora el modelo.
@@ -248,24 +252,116 @@ Para una vivienda cuyas características son:
 age =70, teachers =15 , poor_prop =15, room_num =8, n_hos_beds=8, n_hot_rooms=100 
 Utilizar el modelo Model.2.2
 ```{r}
-predicción <- predict(object = lm_2.2,     # The regression model
-        newdata = data.frame(age =70, teachers =15 , poor_prop =15, 
-                             room_num =8, n_hos_beds=8, n_hot_rooms=100)
-        )   # dataframe of new data
+predicción <- predict(object = lm_2.2.4,
+                      newdata = data.frame(age =70, teachers =15 , poor_prop =15, 
+                                      room_num =8, n_hos_beds=8, n_hot_rooms=100)
+                      ) 
 predicción
 ```
 
-El precio previsto para una vivienda con las características dadas sería de `r round(predicción,2)` unidades monetarias.
+El precio previsto para una vivienda con las características dadas sería de `r round(predicción,2)` millones.
 
 ### 2.3.4. Efectuar una verificación visual de las suposiciones de modelización.
 Analiza los residuos del modelo. Comenta los resultados.
 
 ```{r}
 par(mfrow = c(2, 1))
-plot(lm_2.2, which = 1:2)
+plot(lm_2.2.4, which = 1:2)
 ```
 
 Aunque parece que los residuos mayoritariamente se encuentran en la línea del 0 en la parte dentral en los extremos se tiende a alejar, esto podría indicar problemas de tendencias.
 
 En el gráfico Normal Q-Q se ve como la cola derecha se aleja de la línea normal, lo que nos indica una asimetría en los precios altos.
+
+
+# 3. Modelo de regresión logística
+
+Se desea ajustar un modelo predictivo para predecir la expectativa que una vivienda sea vendida y conocer los factores influyentes en la predicción.
+Convertir la variable Sold a tipo factor y recodificar los valores, asignando “Not” al 0 y “Yes” al 1.
+
+## 3.1. Regresores cuantitativos
+
+### 3.1.1. Calcular
+Estimar el modelo de regresión logística donde la variable dependiente es Sold y las explicativas price, age, poor_prop
+
+```{r 3.1.1}
+lgm_3.1 <- glm(formula = Sold ~ price + age + poor_prop,  family = binomial(link=logit), data = house)
+lgm_3.1
+```
+
+$${logit}(p_i)=\ln\left(\frac{p_i}{1-p_i}\right) = `r round(lgm_3.1$coefficients[1],2)` `r round(lgm_3.1$coefficients[2],2)`x_1 + `r round(lgm_3.1$coefficients[3],2)`x_2 `r round(lgm_3.1$coefficients[4],2)`x_3$$ 
+
+### 3.1.2. Interpretar
+Estima los odds ratio de las variables price, age, poor_prop mediante un intervalo de confianza del 95 % e interpreta los intervalos obtenidos. ¿Cuál sería el odds ratio de un quinquenio?
+
+```{r}
+odds_ratio_3.1 <- exp(confint(lgm_3.1))[2:4,]
+odds_ratio_3.1
+```
+
+Por cada millón que aumenta el precio de la casa la probabilidad de que esté vendida es de entre `r round(exp(confint(lgm_3.1))[2],2)` y `r round(exp(confint(lgm_3.1))[6],2)` veces menor.
+
+Por cada año de antigüedad de la casa la probabilidad de que esté vendida es de entre `r round(exp(confint(lgm_3.1))[3],2)` y `r round(exp(confint(lgm_3.1))[7],2)` veces mayor. Lo que quiere decir que la edad a penas afecta al precio.
+
+Por cada punto de aumento de la proporción de pobreza de la ciudad la probabilidad de que la casa esté vendida es de entre `r round(exp(confint(lgm_3.1))[4],2)` y `r round(exp(confint(lgm_3.1))[8],2)` veces menor.
+
+Para saber los odds ratio de dentro de cinco años hay que elevarlos a la 5. Así que en un quinquenio los intervalos de los odds ratio serán los siguientes.
+```{r}
+round((odds_ratio_3.1^5),2)
+```
+
+
+
+## 3.2. Regresores cualitativos
+
+### 3.2.1. Calcular
+Estimar el modelo de regresión logística donde la variable dependiente es Sold y la explicativa airport.
+
+```{r 3.2.1}
+lgm_3.2 <- glm(formula = Sold ~ airport, family = binomial(link=logit), data = house)
+lgm_3.2
+```
+
+$${logit}(p_i)=\ln\left(\frac{p_i}{1-p_i}\right) = `r round(lgm_3.2$coefficients[1],2)` + `r round(lgm_3.2$coefficients[2],2)`x_1$$
+
+### 3.2.2. Interpretar
+Estima el odds ratio de la variable airport mediante un intervalo de confianza del 95% e interpreta el intervalo obtenido.
+
+```{r}
+exp(coefficients(lgm_3.2))[2]
+```
+
+La posibilidad de que la casa haya sido vendida es `r round(exp(coefficients(lgm_3.2))[2],2)` veces mayor si la ciudad tiene aeropuerto que si no lo tiene.
+
+```{r}
+exp(confint(lgm_3.2))[2,]
+```
+
+La probabilidad de que la casa esté vendida es de entre `r round(exp(confint(lgm_3.2))[2],2)` y `r round(exp(confint(lgm_3.2))[4],2)` veces mayor si la ciudad tiene aeropuerto.
+
+## 3.3. Regresores cuantitativos y cualitativos
+Estimar el modelo de regresión logística donde la variable dependiente es Sold y los regresores price, age, poor_prop y airport.
+
+```{r}
+lgm_3.3 <- glm(formula = Sold ~ price + age + poor_prop + airport, family = binomial(link=logit), data = house)
+lgm_3.3
+```
+
+### 3.3.1. Interpretar
+Estima los odds ratio de las variables regresoras mediante un intervalo de confianza del 95 % e interpreta los intervalos obtenidos. ¿Qué regresor tiene más impacto en la probabilidad de venta?
+
+```{r}
+odds_ratio_3.3 <- exp(confint(lgm_3.3))[2:5,]
+odds_ratio_3.3
+```
+
+```{r}
+impacto <- function(x){
+  ifelse(test= x < 1, 1/x, x)
+}
+
+impacto(odds_ratio_3.3)
+```
+
+El regresor con mayor impacto es airportYES.
 
