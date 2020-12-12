@@ -19,6 +19,8 @@ library(knitr)
 library(gridExtra)
 library(tidyverse)
 library(scales)
+library(VIM)
+library(vcd)
 ```
 
 # 1. Datos y Estadística descriptiva
@@ -42,6 +44,29 @@ house$Sold <- as.factor(house$Sold)
 
 A continuación, comenzaremos el estudio descriptivo, para caracterizar el tipo de variables, detectar posible datos faltantes, outliers, variables con varianza nula o casi nula, etc.
 
+Busco si hay datos perdidos
+```{r}
+sum(is.na(house))
+sum(house=="")
+sum(duplicated(house))
+```
+
+No hay observaciones duplicadas ni valores en blanco pero hay `r sum(is.na(house))` valores perdidos NA así que voy a visualizar su distribución.
+```{r}
+aggr(house, numbers=TRUE, labels=names(house),
+cex.axis=.7, gap=2, ylab=c("Missing data","Pattern"))
+```
+
+Hago una imputación mediante la mediana agrupando por poblaciones con aeropuerto y viviendas vendidas.
+```{r}
+NAn_hos_beds <- which(is.na(house$n_hos_beds))
+house <- house %>%
+  group_by(airport, Sold) %>%
+  mutate(n_hos_beds = ifelse(is.na(n_hos_beds), median(n_hos_beds, na.rm = TRUE), n_hos_beds))
+house$n_hos_beds[NAn_hos_beds]
+```
+
+Miro los resúmenes numéricos.
 ```{r}
 summary(house)
 ```
@@ -252,14 +277,14 @@ Para una vivienda cuyas características son:
 age =70, teachers =15 , poor_prop =15, room_num =8, n_hos_beds=8, n_hot_rooms=100 
 Utilizar el modelo Model.2.2
 ```{r}
-predicción <- predict(object = lm_2.2.4,
+predicción2.3 <- predict(object = lm_2.2.4,
                       newdata = data.frame(age =70, teachers =15 , poor_prop =15, 
                                       room_num =8, n_hos_beds=8, n_hot_rooms=100)
                       ) 
-predicción
+predicción2.3
 ```
 
-El precio previsto para una vivienda con las características dadas sería de `r round(predicción,2)` millones.
+El precio previsto para una vivienda con las características dadas sería de `r round(predicción2.3,2)` millones.
 
 ### 2.3.4. Efectuar una verificación visual de las suposiciones de modelización.
 Analiza los residuos del modelo. Comenta los resultados.
@@ -347,21 +372,91 @@ lgm_3.3 <- glm(formula = Sold ~ price + age + poor_prop + airport, family = bino
 lgm_3.3
 ```
 
+$${logit}(p_i)=\ln\left(\frac{p_i}{1-p_i}\right) = `r round(lgm_3.3$coefficients[1],2)` `r round(lgm_3.3$coefficients[2],2)`x_1 + `r round(lgm_3.3$coefficients[3],2)`x_2 `r round(lgm_3.3$coefficients[4],2)`x_3 + `r round(lgm_3.3$coefficients[5],2)`x_4$$ 
+
 ### 3.3.1. Interpretar
 Estima los odds ratio de las variables regresoras mediante un intervalo de confianza del 95 % e interpreta los intervalos obtenidos. ¿Qué regresor tiene más impacto en la probabilidad de venta?
 
 ```{r}
-odds_ratio_3.3 <- exp(confint(lgm_3.3))[2:5,]
-odds_ratio_3.3
+OR_3.3 <- exp(confint(lgm_3.3))[2:5,]
+OR_3.3
 ```
 
+Para ver el impacto que tiene cada OR calculo la inversa de las que son inferiores a 1.
 ```{r}
 impacto <- function(x){
   ifelse(test= x < 1, 1/x, x)
 }
 
-impacto(odds_ratio_3.3)
+impacto_OR_3.3 <- impacto(OR_3.3)
+impacto_OR_3.3
 ```
 
-El regresor con mayor impacto es airportYES.
+El regresor con mayor impacto es `r rownames(which(impacto_OR_3.3 == max(impacto_OR_3.3), arr.ind = TRUE))`.
+
+### 3.3.2. Predicción de venta
+Para una vivienda cuyas características son: price=20, age=50, poor_prop=50 y airport= YES.
+
+```{r}
+predicción3.3 <- predict(object = lgm_3.3,
+                         newdata = data.frame(price=20, age=50, poor_prop=50, airport="YES"),
+                         type ="response") 
+predicción3.3
+```
+
+La probailidad de que una vivienda de estas características se venda en un año es del `r label_percent(accuracy = 0.01)(predicción3.3)`.
+
+### 3.3.3. Estimación por resustitución de la precisión del modelo
+Proporcionar la tabla de confusión correspondiente al modelo. Comenta los resultados.
+
+```{r}
+predicciones <- ifelse(test = lgm_3.3$fitted.values >= 0.5, yes = ">50%", no = "<50%")
+matriz_confusion <- table(lgm_3.3$model$Sold, predicciones,
+                          dnn = c("observaciones", "predicciones"))
+matriz_confusion
+```
+
+Para ilustrarlo de una forma más visual muestro el siguiente gráfico.
+```{r}
+mosaic(matriz_confusion, shade = TRUE, colorize = TRUE, 
+       gp = gpar(fill = matrix(c("green3", "red2", "red2", "green3"), 2, 2)))
+```
+
+Podemos ver que hay `r matriz_confusion[3]` falsos positivos y `r matriz_confusion[2]` falsos negativos.
+
+```{r}
+sensibilidad <- label_percent(accuracy = 0.01)(matriz_confusion[4]/(matriz_confusion[4]+matriz_confusion[2]))
+especificidad <- label_percent(accuracy = 0.01)(matriz_confusion[1]/(matriz_confusion[1]+matriz_confusion[3]))
+sensibilidad
+especificidad
+```
+
+La sensibilidad es del `r sensibilidad` y la especificidad del `r especificidad`.
+
+Parece que el modelo no es muy bueno ya que la sensibilidad y la especificidad no son altas.
+
+### 3.3.4. Visualización
+Para los distintos valores de la variable price = c(20,30,40) se representaran las tres series de probabilidades de venta en un mismo gráfico de dispersión XY. En concreto, para cada valor de price, se tomarán los valores fijos de age = 50, airport = “YES”, y se representarán las probabilidades de venta (eje Y) para los valores de poor_prop = c(5,25,35,50,65) (eje X). Comenta el gráfico obtenido.
+
+```{r}
+price = c(20,30,40)
+age = 50
+airport ="YES"
+poor_prop = c(5,25,35,50,65)
+data <- as.data.frame(merge(cbind(price), cbind(age, airport, poor_prop), all=TRUE))
+data$price <- as.numeric(data$price)
+data$age <- as.numeric(data$age)
+data$airport <- as.factor(data$airport)
+data$poor_prop <- as.numeric(data$poor_prop)
+data$pred <- predict(object=lgm_3.3, newdata=data, type="response")
+ggplot(data, aes(x=poor_prop, y=pred, color=factor(price))) +
+  geom_line() +
+  ylab("probabilidades de venta") +
+  ggtitle("Predicción de venta")
+```
+
+Se puede ver la influencia que tienen el precio y la proporción de pobreza. Con una pobreza baja cuanto más bajo es el precio mejores son las probabilidades de venta pero según aumenta la pobreza las probabilidades de venta tienden a 0 para todos los precios.
+
+# 4. Conclusión
+Recopilar las conclusiones alcanzadas en los apartados 2.1, 2.2, 2.3, 3.1, 3.2 y 3.3. En cada caso, puedes acompañar tus conclusiones con los niveles de confianza y/o los p-valores correspondientes.
 
